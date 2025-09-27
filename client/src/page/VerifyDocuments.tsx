@@ -1,7 +1,5 @@
-const VerifyDocuments = () => {
-  return (
-    <div>VerifyDocuments</div>
-  )
+function VerifyDocuments() {
+  return <div>VerifyDocuments</div>;
 }
 
-export default VerifyDocuments
+export default VerifyDocuments;
