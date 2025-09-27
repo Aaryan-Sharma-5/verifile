@@ -58,6 +58,7 @@ export async function verifyMetaMaskSignature(address, message, signature) {
  */
 export const validateMetaMaskCredentials = async (req, res, next) => {
     try {
+        console.log("bosda", req.body);
         // Extract credentials from request body first, then fallback to headers
         const metaMaskAddress = req.body.metaMaskAddress || req.headers['metamask-address'];
         const MetamaskMsg = req.body.MetamaskMsg || req.headers['metamask-message'];
@@ -110,64 +111,6 @@ export const validateMetaMaskCredentials = async (req, res, next) => {
 
     } catch (error) {
         console.error('MetaMask validation middleware error:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Internal server error during MetaMask validation',
-            message: error.message
-        });
-    }
-};
-
-/**
- * Optional middleware to make MetaMask validation optional
- * If credentials are provided, they will be validated
- * If not provided, the request will continue without MetaMask data
- */
-export const optionalMetaMaskValidation = async (req, res, next) => {
-    try {
-        const metaMaskAddress = req.body.metaMaskAddress || req.headers['metamask-address'];
-        const MetamaskMsg = req.body.MetamaskMsg || req.headers['metamask-message'];
-        const MetaMaskSign = req.body.MetaMaskSign || req.headers['metamask-signature'];
-
-        // If no MetaMask credentials provided, continue without validation
-        if (!metaMaskAddress && !MetamaskMsg && !MetaMaskSign) {
-            req.metamask = null;
-            return next();
-        }
-
-        // If some but not all credentials provided, return error
-        if (!metaMaskAddress || !MetamaskMsg || !MetaMaskSign) {
-            return res.status(400).json({
-                success: false,
-                error: 'Incomplete MetaMask credentials',
-                message: 'If providing MetaMask credentials, all three are required: metaMaskAddress, MetamaskMsg, and MetaMaskSign'
-            });
-        }
-
-        // Validate the provided credentials
-        const verificationResult = await verifyMetaMaskSignature(metaMaskAddress, MetamaskMsg, MetaMaskSign);
-
-        if (!verificationResult.success || !verificationResult.isValid) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid MetaMask credentials',
-                message: verificationResult.error || 'Signature verification failed'
-            });
-        }
-
-        // Add verified MetaMask data to request
-        req.metamask = {
-            address: metaMaskAddress,
-            message: MetamaskMsg,
-            signature: MetaMaskSign,
-            verified: true,
-            verificationResult: verificationResult
-        };
-
-        next();
-
-    } catch (error) {
-        console.error('Optional MetaMask validation middleware error:', error);
         return res.status(500).json({
             success: false,
             error: 'Internal server error during MetaMask validation',

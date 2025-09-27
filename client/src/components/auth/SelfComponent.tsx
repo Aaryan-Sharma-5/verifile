@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { SelfAppBuilder, SelfQRcodeWrapper } from '@selfxyz/qrcode'
-import { useWallet } from '../contexts/WalletContext'
+import SelfQRcodeWrapper, { SelfAppBuilder } from '@selfxyz/qrcode'
 
-export default function Verify() {
+// import { useWallet } from '../contexts/WalletContext'
+
+export default function Verify({ account: string, authData: string, userType: string }) {
   const [selfApp, setSelfApp] = useState<any | null>(null)
-  const { account, authData, userType } = useWallet()
 
   useEffect(() => {
     // Use the authenticated wallet address or fallback to default

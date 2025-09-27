@@ -1,7 +1,9 @@
-import React from 'react';
-import { Shield, Globe, Lock, Users, CheckCircle, ArrowRight, Zap } from 'lucide-react';
+import { Shield, Globe, Lock, ArrowRight, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function WorkHistoryWelcome() {
+
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100">
       {/* Header */}
@@ -18,7 +20,7 @@ export default function WorkHistoryWelcome() {
           <div className="flex items-center space-x-6">
             <a href="#" className="text-gray-600 hover:text-orange-500 transition-colors">About</a>
             <a href="#" className="text-gray-600 hover:text-orange-500 transition-colors">Security</a>
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors">
+            <button onClick={() => navigate('/employee')} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors cursor-pointer">
               Get Started
             </button>
           </div>

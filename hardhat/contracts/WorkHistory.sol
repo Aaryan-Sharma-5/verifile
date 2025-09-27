@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 contract WorkHistory {
     address public owner;
-    address public fluenceBackendAddress;
+    address public fluenceBackendAddress = 0xDCeFdee35A355715924C100870a5689b06c2dd95;
     uint256 public constant VERIFICATION_THRESHOLD = 3; // Need 3 verifications to trust
     
     modifier onlyFluenceBackend() {
@@ -165,6 +165,14 @@ contract WorkHistory {
         }
     }
 
+    function checkIfEmployeeExists(address _employee) public view returns (bool) {
+        return registeredEmployees[_employee];
+    }
+
+    function checkIfOrgExists(address _orgAddress) public view returns (bool) {
+        return organizations[_orgAddress].orgWalletAddress != address(0);
+    }
+
     // Emergency functions for owner
     function removeOrganization(address _orgAddress) public onlyOwner {
         require(!organizations[_orgAddress].isFromConstructor, "Cannot remove constructor organizations");
@@ -176,6 +184,4 @@ contract WorkHistory {
         // Note: This would require updating the constant to a state variable
         // VERIFICATION_THRESHOLD = _newThreshold;
     }
-
-    function addEmpl
 }

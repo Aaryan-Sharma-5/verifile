@@ -1,22 +1,9 @@
 import React, { useEffect, useState } from "react";
-import type { ReactElement } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 
-interface ProtectedRouteProps {
-  element: ReactElement;
-  actor: "org" | "employee";
-  redirectOnSuccess?: string;
-  redirectOnFailure?: string;
-}
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  element,
-  actor,
-  redirectOnSuccess,
-  redirectOnFailure,
-}) => {
+const ProtectedRoute: React.FC = () => {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -54,10 +41,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         const signature = await signer.signMessage(message);
 
         const response = await axios.post("http://localhost:8080/api/auth", {
-          address,
-          message,
-          signature,
-          actor,
+          metaMaskAddress: address,
+          MetamaskMsg: message,
+          MetaMaskSign: signature,
         });
 
         if (response.status >= 200 && response.status < 300) {
@@ -74,7 +60,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     };
 
     checkMetaMask();
-  }, [navigate, actor]);
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -107,7 +93,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  return isAuthenticated ? element : null;
+  return isAuthenticated ? <Outlet /> : null;
 };
 
 export default ProtectedRoute;
