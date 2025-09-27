@@ -115,3 +115,61 @@ export async function checkAddressTypeAsFluenceBackend(address) {
         return { whatExists: 'None' };
     }
 }
+
+/**
+ * Register an employee on the blockchain using the fluence backend address
+ * @param {string} employeeAddress - The wallet address of the employee to register
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function registerEmployee(employeeAddress) {
+    try {
+        console.log(`Registering employee: ${employeeAddress}`);
+        console.log(`Using contract at: ${contractAddress}`);
+        console.log(`Fluence backend address: ${process.env.FLUENCE_BACKEND_ADDRESS || 'using default from contract'}`);
+        
+        // Execute the registerEmployee function using the fluence backend's private key
+        const result = await rpcClient.executeContract(
+            contractAddress,
+            contractABI,
+            'registerEmployee',
+            [employeeAddress]
+        );
+
+        if (result.success) {
+            console.log(`Employee ${employeeAddress} registered successfully`);
+            console.log(`Transaction hash: ${result.data.hash}`);
+            
+            // Wait for transaction confirmation
+            const receipt = await rpcClient.waitForTransaction(result.data.hash, 1);
+            if (receipt.success) {
+                console.log(`Transaction confirmed: ${result.data.hash}`);
+                return {
+                    success: true,
+                    data: {
+                        transactionHash: result.data.hash,
+                        receipt: receipt.data
+                    }
+                };
+            } else {
+                console.error('Transaction failed to confirm:', receipt.error);
+                return {
+                    success: false,
+                    error: `Transaction failed to confirm: ${receipt.error}`
+                };
+            }
+        } else {
+            console.error('Failed to register employee:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error registering employee:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
