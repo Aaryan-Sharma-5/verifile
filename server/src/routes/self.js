@@ -1,6 +1,7 @@
 import express from 'express';
 import { selfBackendVerifier } from '../config/selfVerifier.js';
 import { verifyMetaMaskSignature } from '../middleware/metamaskAuth.js';
+import { checkAddressTypeAsFluenceBackend, registerEmployee } from '../utils/contractUtils.js';
 
 const router = express.Router();
 
@@ -112,11 +113,54 @@ router.post("/", async (req, res) => {
     if (result.isValidDetails.isValid) {
       // Verification successful - process the result
       console.log("✅ Self.xyz verification successful for user:", walletAddress);
-      
-      // You can now use the extracted wallet data for further processing
-      // For example, link the verified identity to the wallet address
       console.log("🔗 Linking verified identity to wallet:", walletAddress);
       console.log("📝 MetaMask signature verified:", metamaskVerified);
+      
+      // Now attempt to register the employee after successful verification
+      let employeeRegistration = {
+        attempted: false,
+        success: false,
+        alreadyExists: false,
+        error: null,
+        transactionHash: null
+      };
+
+      if (walletAddress && metamaskVerified) {
+        console.log("👤 Attempting to register employee:", walletAddress);
+        employeeRegistration.attempted = true;
+
+        try {
+          // First check if the address already exists as an employee or organization
+          const addressType = await checkAddressTypeAsFluenceBackend(walletAddress);
+          
+          if (addressType.whatExists === 'employee') {
+            console.log("ℹ️ Address already registered as employee");
+            employeeRegistration.alreadyExists = true;
+            employeeRegistration.success = true; // Consider this a success since they are registered
+          } else if (addressType.whatExists === 'org') {
+            console.log("⚠️ Address already registered as organization");
+            employeeRegistration.error = "Address is already registered as an organization";
+          } else {
+            // Address doesn't exist, register as new employee
+            console.log("📝 Registering new employee:", walletAddress);
+            const registerResult = await registerEmployee(walletAddress);
+
+            if (registerResult.success) {
+              console.log("✅ Employee registered successfully on blockchain");
+              employeeRegistration.success = true;
+              employeeRegistration.transactionHash = registerResult.data.transactionHash;
+            } else {
+              console.log("❌ Failed to register employee:", registerResult.error);
+              employeeRegistration.error = registerResult.error;
+            }
+          }
+        } catch (regError) {
+          console.error("❌ Error during employee registration:", regError);
+          employeeRegistration.error = regError.message;
+        }
+      } else {
+        console.log("⚠️ Skipping employee registration - incomplete verification");
+      }
       
       return res.json({
         status: "success",
@@ -132,7 +176,8 @@ router.post("/", async (req, res) => {
           selfxyzVerified: true,
           metamaskVerified: metamaskVerified,
           fullyVerified: metamaskVerified 
-        }
+        },
+        employeeRegistration: employeeRegistration
       });
     } else {
       // Verification failed
