@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@selfxyz/core": "^1.0.8",
-    "@selfxyz/qrcode": "^0.0.19",
+    "@selfxyz/common": "^0.0.8",
+    "@selfxyz/qrcode": "^1.0.15",
     "@tailwindcss/vite": "^4.1.13",
     "ethers": "^6.15.0",
     "lucide-react": "^0.544.0",

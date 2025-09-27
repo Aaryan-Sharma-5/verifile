@@ -1,44 +1,50 @@
 import { useEffect, useState } from 'react'
-import SelfQRcodeWrapper, { SelfAppBuilder } from '@selfxyz/qrcode'
+import { SelfAppBuilder, SelfQRcodeWrapper } from '@selfxyz/qrcode'
 
 // import { useWallet } from '../contexts/WalletContext'
 
-export default function Verify({ account: string, authData: string, userType: string }) {
+interface VerifyProps {
+  account: string
+  authData: string
+  userType: string
+}
+
+export default function Verify({ account, authData, userType }: VerifyProps) {
   const [selfApp, setSelfApp] = useState<any | null>(null)
 
   useEffect(() => {
     // Use the authenticated wallet address or fallback to default
     const userId = account || '0x00000000219ab540356cBB839Cbe05303d7705Fa'
     
-    // Prepare user-defined data with authentication information
-    const userDefinedDataObj: Record<string, any> = {}
-    
+    // Parse authData if provided
+    let userDefinedData = null
     if (authData) {
-      userDefinedDataObj.walletAddress = authData.address
-      userDefinedDataObj.signature = authData.signature
-      userDefinedDataObj.originalMessage = authData.message
-      userDefinedDataObj.userType = userType
-      userDefinedDataObj.authenticatedAt = new Date().toISOString()
+      try {
+        userDefinedData = JSON.parse(authData)
+      } catch (error) {
+        console.error('Failed to parse authData:', error)
+      }
     }
-    
-    // Convert to JSON string as expected by the API
-    const userDefinedData = Object.keys(userDefinedDataObj).length > 0 
-      ? JSON.stringify(userDefinedDataObj) 
-      : undefined
     
     const app = new SelfAppBuilder({
       version: 2,
       appName: 'VeriFile',
       scope: 'verifile-app',
-      endpoint: `http://localhost:8080/api/self`,
+      endpoint: `https://unrecollective-anabel-debentured.ngrok-free.dev/api/self`,
       logoBase64: 'https://i.postimg.cc/mrmVf9hm/self.png',
       userId,
-      endpointType: 'staging_celo',
+      endpointType: 'staging_https',
       userIdType: 'hex', // 'hex' for EVM address or 'uuid' for uuidv4
       disclosures: {
+        minimumAge: 18,
+        excludedCountries: [],
+        ofac:false,
+        // What you want users to
         nationality: true,
+        gender: true,
       },
-      ...(userDefinedData && { userDefinedData })
+      userDefinedData: "test",
+      //...(userDefinedData && { userDefinedData })
     }).build()
 
     setSelfApp(app)
@@ -76,6 +82,7 @@ export default function Verify({ account: string, authData: string, userType: st
                 <SelfQRcodeWrapper
                   selfApp={selfApp}
                   onSuccess={handleSuccessfulVerification}
+                  onError={()=>console.log("bhag bhadve")}
                 />
               </div>
               

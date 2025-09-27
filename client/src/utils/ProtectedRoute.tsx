@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { ethers } from "ethers";
 
 const ProtectedRoute: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [metaMaskInstalled, setMetaMaskInstalled] = useState<boolean>(false);
+  const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
     const checkMetaMask = () => {
@@ -48,6 +50,18 @@ const ProtectedRoute: React.FC = () => {
 
         if (response.status >= 200 && response.status < 300) {
           setIsAuthenticated(true);
+          
+          // Store user type and redirect based on whatExists value
+          const { whatExists } = response.data;
+          setUserType(whatExists);
+          
+          if (whatExists === "org") {
+            navigate("/organization");
+          } else if (whatExists === "employee") {
+            navigate("/employee");
+          } else {
+            navigate("/register-choice"); // Redirect to register choice if no user type
+          }
         } else {
           navigate("/");
         }
@@ -61,6 +75,21 @@ const ProtectedRoute: React.FC = () => {
 
     checkMetaMask();
   }, [navigate]);
+
+  // Enforce route restrictions based on user type
+  useEffect(() => {
+    if (isAuthenticated && userType) {
+      const currentPath = location.pathname;
+      
+      if (userType === "org" && currentPath !== "/organization") {
+        navigate("/organization");
+      } else if (userType === "employee" && currentPath !== "/employee") {
+        navigate("/employee");
+      } else if (userType === "None" && currentPath !== "/register-choice") {
+        navigate("/register-choice");
+      }
+    }
+  }, [location.pathname, isAuthenticated, userType, navigate]);
 
   if (isLoading) {
     return (
