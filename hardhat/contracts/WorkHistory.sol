@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 contract WorkHistory {
     address public owner;
     address public fluenceBackendAddress = 0xDCeFdee35A355715924C100870a5689b06c2dd95;
-    uint256 public constant VERIFICATION_THRESHOLD = 3; // Need 3 verifications to trust
+    uint256 public VERIFICATION_THRESHOLD = 3; // Need 3 verifications to trust
     
     modifier onlyFluenceBackend() {
         require(msg.sender == fluenceBackendAddress, "Only Fluence Backend");
@@ -17,7 +17,7 @@ contract WorkHistory {
     }
 
     struct VerificationStatus {
-        mapping(address => bool) companyToValidOrNot;
+        mapping(address => bool) companyToValidOrNot; // Tracks which companies have verified
         uint256 count; // Number of verifications received
     }
 
@@ -31,6 +31,9 @@ contract WorkHistory {
     }
 
     address[] public pendingOrgs;
+    
+    Organization[] public initialOrganizations;
+
     mapping(address => Organization) public organizations;
     mapping(address => VerificationStatus) public verificationStatuses;
 
@@ -43,6 +46,7 @@ contract WorkHistory {
     // Store the documents added by orgs only
     mapping(address => DocumentRecord[]) private userDocuments;
     mapping(address => bool) public registeredEmployees;
+    address[] public registeredEmployeesList; // Array to track all registered employees
 
     struct ConstructorArgumentsOrganizations {
         string orgName;
@@ -70,12 +74,19 @@ contract WorkHistory {
                 isTrusted: true,
                 isFromConstructor: true
             });
+
+            initialOrganizations.push(organizations[_orgs[i].orgWalletAddress]);
             
             emit OrganizationAdded(_orgs[i].orgWalletAddress, _orgs[i].orgName);
             emit OrganizationTrusted(_orgs[i].orgWalletAddress);
         }
         owner = msg.sender;
     }
+
+    function getAllInitialOrganizationIds() public view returns (Organization[] memory) {
+        return initialOrganizations;
+    }
+
 
     function addOrganization(ConstructorArgumentsOrganizations memory _org) public {
         require(
@@ -121,8 +132,32 @@ contract WorkHistory {
         }
     }
 
+    function verifyOrganizationOnBehalf(address _voter, address _orgAddress) public onlyFluenceBackend {
+        require(organizations[_voter].isTrusted, "Voter organization must be trusted");
+        require(!organizations[_orgAddress].isTrusted, "Organization already trusted");
+        require(organizations[_orgAddress].orgWalletAddress != address(0), "Organization does not exist");
+        require(!verificationStatuses[_orgAddress].companyToValidOrNot[_voter], "Already verified by this organization");
+
+        verificationStatuses[_orgAddress].companyToValidOrNot[_voter] = true;
+        verificationStatuses[_orgAddress].count++;
+
+        emit OrganizationVerified(_orgAddress, _voter);
+
+        // Check if verification threshold is met
+        if (verificationStatuses[_orgAddress].count >= VERIFICATION_THRESHOLD) {
+            organizations[_orgAddress].isTrusted = true;
+            emit OrganizationTrusted(_orgAddress);
+            
+            // Remove from pending
+            _removePendingOrg(_orgAddress);
+        }
+    }
+
     function registerEmployee(address _employee) public onlyFluenceBackend{
-        registeredEmployees[_employee] = true;
+        if (!registeredEmployees[_employee]) {
+            registeredEmployees[_employee] = true;
+            registeredEmployeesList.push(_employee);
+        }
         emit EmployeeRegistered(_employee);
     }
 
@@ -165,6 +200,68 @@ contract WorkHistory {
         }
     }
 
+
+    struct UserData {
+        DocumentRecord[] documents;
+        Organization[] organizationsThatAdded;
+    }
+
+    function getUsersData(address _user) public view returns (UserData[] memory, bool) {
+        // check if user is registered
+        if(!registeredEmployees[_user]){
+            return (new UserData[](0), false);
+        }
+
+        DocumentRecord[] memory docs = userDocuments[_user];
+        UserData[] memory data = new UserData[](docs.length);
+        for (uint256 i = 0; i < docs.length; i++) {
+            data[i].documents = new DocumentRecord[](1);
+            data[i].documents[0] = docs[i];
+            data[i].organizationsThatAdded = new Organization[](1);
+            data[i].organizationsThatAdded[0] = organizations[docs[i].addedBy];
+        }
+        return (data, true);
+    }
+
+    function getOrganizationsPastAddedDocuments(address _orgAddress) public view returns (
+        DocumentRecord[] memory orgDocuments,
+        address[] memory correspondingUsers
+    ) {
+        require(organizations[_orgAddress].orgWalletAddress != address(0), "Organization does not exist");
+        
+        // First pass: count total documents added by this organization
+        uint256 totalCount = 0;
+        for (uint256 i = 0; i < registeredEmployeesList.length; i++) {
+            address user = registeredEmployeesList[i];
+            DocumentRecord[] memory userDocs = userDocuments[user];
+            for (uint256 j = 0; j < userDocs.length; j++) {
+                if (userDocs[j].addedBy == _orgAddress) {
+                    totalCount++;
+                }
+            }
+        }
+        
+        // Initialize arrays with the correct size
+        orgDocuments = new DocumentRecord[](totalCount);
+        correspondingUsers = new address[](totalCount);
+        
+        // Second pass: populate the arrays
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < registeredEmployeesList.length; i++) {
+            address user = registeredEmployeesList[i];
+            DocumentRecord[] memory userDocs = userDocuments[user];
+            for (uint256 j = 0; j < userDocs.length; j++) {
+                if (userDocs[j].addedBy == _orgAddress) {
+                    orgDocuments[currentIndex] = userDocs[j];
+                    correspondingUsers[currentIndex] = user;
+                    currentIndex++;
+                }
+            }
+        }
+        
+        return (orgDocuments, correspondingUsers);
+    }
+
     function checkIfEmployeeExists(address _employee) public view returns (bool) {
         return registeredEmployees[_employee];
     }
@@ -184,4 +281,44 @@ contract WorkHistory {
         // Note: This would require updating the constant to a state variable
         // VERIFICATION_THRESHOLD = _newThreshold;
     }
+
+    function addToInitialOrganizations(ConstructorArgumentsOrganizations memory _org) public onlyOwner {
+        require(
+            organizations[_org.orgWalletAddress].orgWalletAddress == address(0), 
+            "Organization already exists"
+        );
+
+        organizations[_org.orgWalletAddress] = Organization({
+            orgName: _org.orgName,
+            orgWebsite: _org.orgWebsite,
+            physicalAddress: _org.physicalAddress,
+            orgWalletAddress: _org.orgWalletAddress,
+            isTrusted: true,
+            isFromConstructor: true
+        });
+
+        initialOrganizations.push(organizations[_org.orgWalletAddress]);
+        
+        emit OrganizationAdded(_org.orgWalletAddress, _org.orgName);
+        emit OrganizationTrusted(_org.orgWalletAddress);
+    }
+
+    event InitialOrganizationRemoved(address indexed orgAddress);
+
+    function removeInitialOrganization(address _orgAddress) public onlyOwner {
+        require(organizations[_orgAddress].isFromConstructor, "Only constructor organizations can be removed here");
+        delete organizations[_orgAddress];
+
+        // Remove from initialOrganizations array
+        for (uint256 i = 0; i < initialOrganizations.length; i++) {
+            if (initialOrganizations[i].orgWalletAddress == _orgAddress) {
+                initialOrganizations[i] = initialOrganizations[initialOrganizations.length - 1];
+                initialOrganizations.pop();
+                break;
+            }
+        }
+
+        emit InitialOrganizationRemoved(_orgAddress);
+    }
+    
 }
