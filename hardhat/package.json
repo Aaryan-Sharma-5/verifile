@@ -2,6 +2,12 @@
   "name": "resume-blockchain",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "deploy": "npx hardhat ignition deploy ignition/modules/WorkHistory.ts",
+    "node": "npx hardhat node"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
