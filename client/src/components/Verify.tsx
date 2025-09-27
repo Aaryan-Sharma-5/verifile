@@ -1,14 +1,33 @@
 import { useEffect, useState } from 'react'
-import SelfQRCodeWrapper from '@selfxyz/qrcode'
-import { SelfAppBuilder } from '@selfxyz/qrcode'
+import { SelfAppBuilder, SelfQRcodeWrapper } from '@selfxyz/qrcode'
+import { useWallet } from '../contexts/WalletContext'
 
 export default function Verify() {
   const [selfApp, setSelfApp] = useState<any | null>(null)
+  const { account, authData, userType } = useWallet()
 
   useEffect(() => {
-    const userId = '0x00000000219ab540356cBB839Cbe05303d7705Fa' // or a UUID depending on your setup
+    // Use the authenticated wallet address or fallback to default
+    const userId = account || '0x00000000219ab540356cBB839Cbe05303d7705Fa'
+    
+    // Prepare user-defined data with authentication information
+    const userDefinedDataObj: Record<string, any> = {}
+    
+    if (authData) {
+      userDefinedDataObj.walletAddress = authData.address
+      userDefinedDataObj.signature = authData.signature
+      userDefinedDataObj.originalMessage = authData.message
+      userDefinedDataObj.userType = userType
+      userDefinedDataObj.authenticatedAt = new Date().toISOString()
+    }
+    
+    // Convert to JSON string as expected by the API
+    const userDefinedData = Object.keys(userDefinedDataObj).length > 0 
+      ? JSON.stringify(userDefinedDataObj) 
+      : undefined
     
     const app = new SelfAppBuilder({
+      version: 2,
       appName: 'VeriFile',
       scope: 'verifile-app',
       endpoint: `http://localhost:8080/api/self`,
@@ -19,10 +38,11 @@ export default function Verify() {
       disclosures: {
         nationality: true,
       },
+      ...(userDefinedData && { userDefinedData })
     }).build()
 
     setSelfApp(app)
-  }, [])
+  }, [account, authData, userType])
 
   const handleSuccessfulVerification = () => {
     // Persist the attestation / session result to your backend, then gate content
@@ -53,7 +73,7 @@ export default function Verify() {
               </p>
               
               <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-6 rounded-xl border-2 border-orange-200">
-                <SelfQRCodeWrapper
+                <SelfQRcodeWrapper
                   selfApp={selfApp}
                   onSuccess={handleSuccessfulVerification}
                 />
