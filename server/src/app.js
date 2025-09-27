@@ -1,4 +1,6 @@
 import express from 'express';
+import multer from 'multer';
+import crypto from 'crypto-js';
 
 import { validateMetaMaskCredentials } from './middleware/metamaskAuth.js';
 import { 
@@ -8,7 +10,8 @@ import {
     checkOrgsPowerfulOrNot,
     verifyOrganization,
     getUsersData,
-    getUserDocuments
+    getUserDocuments,
+    addDocumentToBlockchain
 } from './utils/contractUtils.js';
 
 import cors from 'cors';
@@ -22,6 +25,34 @@ import selfRoutes from './routes/self.js';
 import healthRoutes from './routes/health.js';
 
 const app = express();
+
+// Configure multer to store files in memory
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 10 // Maximum 10 files
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept common document types
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'image/jpeg',
+      'image/png',
+      'image/gif'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, DOC, DOCX, TXT, and images are allowed.'), false);
+    }
+  }
+});
 
 // Call startup tasks (commented out for now)
 // startupTasks();  // dont call only for checking employee seeding
@@ -285,6 +316,325 @@ app.post("/api/register-employee", validateMetaMaskCredentials, async (req, res)
 
   } catch (error) {
     console.error("❌ Error during employee registration:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      message: error.message
+    });
+  }
+});
+
+app.post("/api/upload-documents", validateMetaMaskCredentials, upload.array('documents'), async (req, res) => {
+  console.log("Received document upload request");
+  console.log("Verified MetaMask data:", req.metamask);
+  console.log("Number of files received:", req.files ? req.files.length : 0);
+
+  try {
+    // Validate that files were uploaded
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No files uploaded",
+        message: "Please select at least one file to upload"
+      });
+    }
+
+    // Get the organization address from the validated MetaMask request
+    const orgAddress = req.metamask.address;
+    
+    // Get employee address from request body
+    const { address } = req.body;
+    
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing employee address",
+        message: "Please provide the employee address"
+      });
+    }
+
+    console.log(`📄 Processing ${req.files.length} files for employee ${address} by organization ${orgAddress}`);
+
+    // First check if the organization address is one of the initial/powerful organizations
+    const powerfulCheckResult = await checkOrgsPowerfulOrNot(orgAddress);
+
+    if (!powerfulCheckResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to check organization power status",
+        message: powerfulCheckResult.error
+      });
+    }
+
+    if (!powerfulCheckResult.isPowerful) {
+      return res.status(403).json({
+        success: false,
+        error: "Unauthorized",
+        message: "Only initial/powerful organizations can upload documents"
+      });
+    }
+
+    console.log(`✅ Organization ${orgAddress} is authorized to upload documents`);
+
+    // Process each file
+    const processedFiles = [];
+    const failedFiles = [];
+
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      
+      try {
+        console.log(`Processing file ${i + 1}: ${file.originalname}`);
+        
+        // Generate hash of file content
+        const fileBuffer = file.buffer;
+        const contentHash = crypto.SHA256(fileBuffer.toString('base64')).toString();
+        
+        // Create a bytes32 hash for the blockchain (take first 32 bytes)
+        const blockchainHash = '0x' + contentHash.substring(0, 64);
+        
+        console.log(`Generated hash for ${file.originalname}: ${blockchainHash}`);
+        
+        // Add document to blockchain
+        const blockchainResult = await addDocumentToBlockchain(
+          address,
+          blockchainHash,
+          orgAddress
+        );
+
+        if (blockchainResult.success) {
+          processedFiles.push({
+            fileName: file.originalname,
+            originalName: file.originalname,
+            size: file.size,
+            mimeType: file.mimetype,
+            contentHash: contentHash,
+            blockchainHash: blockchainHash,
+            transactionHash: blockchainResult.data.transactionHash,
+            addedBy: orgAddress,
+            timestamp: new Date().toISOString()
+          });
+          
+          console.log(`✅ Successfully processed file: ${file.originalname}`);
+        } else {
+          failedFiles.push({
+            fileName: file.originalname,
+            error: blockchainResult.error
+          });
+          
+          console.log(`❌ Failed to process file ${file.originalname}: ${blockchainResult.error}`);
+        }
+        
+      } catch (fileError) {
+        console.error(`Error processing file ${file.originalname}:`, fileError);
+        failedFiles.push({
+          fileName: file.originalname,
+          error: fileError.message
+        });
+      }
+    }
+
+    // Prepare response
+    const response = {
+      success: processedFiles.length > 0,
+      message: `Processed ${processedFiles.length} files successfully, ${failedFiles.length} failed`,
+      data: {
+        employeeAddress: address,
+        organizationAddress: orgAddress,
+        processedFiles: processedFiles,
+        totalProcessed: processedFiles.length,
+        totalFailed: failedFiles.length
+      }
+    };
+
+    if (failedFiles.length > 0) {
+      response.data.failedFiles = failedFiles;
+    }
+
+    console.log(`📋 Upload summary: ${processedFiles.length} successful, ${failedFiles.length} failed`);
+
+    // Return success if at least one file was processed
+    if (processedFiles.length > 0) {
+      res.json(response);
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Failed to process any files",
+        message: "All file uploads failed",
+        data: {
+          failedFiles: failedFiles
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Error during document upload:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      message: error.message
+    });
+  }
+});
+
+app.post("/api/verify-documents", upload.array('documents'), async (req, res) => {
+  console.log("Received document verification request");
+  console.log("Number of files received:", req.files ? req.files.length : 0);
+
+  try {
+    // Validate that files were uploaded
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No files uploaded",
+        message: "Please select at least one file to verify"
+      });
+    }
+
+    // Get employee address from request body
+    const { address } = req.body;
+    
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing employee address",
+        message: "Please provide the employee address to verify documents against"
+      });
+    }
+
+    console.log(`📄 Verifying ${req.files.length} files against blockchain records for employee ${address}`);
+
+    // Get all documents for this employee from blockchain
+    const userDataResult = await getUsersData(address);
+    
+    if (!userDataResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: "Failed to fetch employee documents from blockchain",
+        message: userDataResult.error
+      });
+    }
+
+    if (!userDataResult.isRegistered) {
+      return res.status(404).json({
+        success: false,
+        error: "Employee not found",
+        message: "The provided address is not registered as an employee"
+      });
+    }
+
+    const blockchainDocuments = userDataResult.data || [];
+    console.log(`📋 Found ${blockchainDocuments.length} documents on blockchain for employee ${address}`);
+
+    // Extract all blockchain hashes for comparison
+    const blockchainHashes = blockchainDocuments.map(item => ({
+      hash: item.documents[0].documentHash,
+      timestamp: parseInt(item.documents[0].timestamp),
+      addedBy: {
+        address: item.documents[0].addedBy,
+        orgName: item.organizationsThatAdded[0].orgName,
+        orgWebsite: item.organizationsThatAdded[0].orgWebsite,
+        physicalAddress: item.organizationsThatAdded[0].physicalAddress,
+        isTrusted: item.organizationsThatAdded[0].isTrusted
+      }
+    }));
+
+    // Process each uploaded file
+    const verificationResults = [];
+    const unverifiedFiles = [];
+
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      
+      try {
+        console.log(`Verifying file ${i + 1}: ${file.originalname}`);
+        
+        // Generate hash of file content using the same method as upload
+        const fileBuffer = file.buffer;
+        const contentHash = crypto.SHA256(fileBuffer.toString('base64')).toString();
+        
+        // Create a bytes32 hash for comparison (take first 32 bytes)
+        const blockchainHash = '0x' + contentHash.substring(0, 64);
+        
+        console.log(`Generated hash for ${file.originalname}: ${blockchainHash}`);
+        
+        // Find matching document on blockchain
+        const matchingDocument = blockchainHashes.find(doc => 
+          doc.hash.toLowerCase() === blockchainHash.toLowerCase()
+        );
+
+        if (matchingDocument) {
+          verificationResults.push({
+            fileName: file.originalname,
+            size: file.size,
+            mimeType: file.mimetype,
+            computedHash: blockchainHash,
+            blockchainHash: matchingDocument.hash,
+            isVerified: true,
+            status: "VERIFIED",
+            message: "Document hash matches blockchain record",
+            blockchainRecord: {
+              timestamp: matchingDocument.timestamp,
+              timestampFormatted: new Date(matchingDocument.timestamp * 1000).toISOString(),
+              addedBy: matchingDocument.addedBy
+            }
+          });
+          
+          console.log(`✅ Document ${file.originalname} verified successfully`);
+        } else {
+          unverifiedFiles.push({
+            fileName: file.originalname,
+            size: file.size,
+            mimeType: file.mimetype,
+            computedHash: blockchainHash,
+            isVerified: false,
+            status: "NOT_FOUND",
+            message: "Document hash not found in blockchain records"
+          });
+          
+          console.log(`❌ Document ${file.originalname} not found on blockchain`);
+        }
+        
+      } catch (fileError) {
+        console.error(`Error processing file ${file.originalname}:`, fileError);
+        unverifiedFiles.push({
+          fileName: file.originalname,
+          isVerified: false,
+          status: "ERROR",
+          message: `Error processing file: ${fileError.message}`
+        });
+      }
+    }
+
+    // Prepare comprehensive response
+    const totalFiles = req.files.length;
+    const verifiedCount = verificationResults.length;
+    const unverifiedCount = unverifiedFiles.length;
+
+    const response = {
+      success: true,
+      message: `Verification complete: ${verifiedCount} verified, ${unverifiedCount} unverified out of ${totalFiles} files`,
+      data: {
+        employeeAddress: address,
+        totalFilesSubmitted: totalFiles,
+        totalBlockchainDocuments: blockchainDocuments.length,
+        verificationSummary: {
+          totalVerified: verifiedCount,
+          totalUnverified: unverifiedCount,
+          verificationRate: totalFiles > 0 ? ((verifiedCount / totalFiles) * 100).toFixed(1) + '%' : '0%'
+        },
+        verifiedDocuments: verificationResults,
+        unverifiedDocuments: unverifiedFiles,
+        blockchainDocuments: blockchainHashes
+      }
+    };
+
+    console.log(`📊 Verification summary: ${verifiedCount}/${totalFiles} documents verified`);
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("❌ Error during document verification:", error);
     res.status(500).json({
       success: false,
       error: "Internal server error",

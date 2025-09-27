@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load the contract ABI
-const contractArtifactPath = path.resolve(__dirname, '../../../hardhat/artifacts/contracts/WorkHistory.sol/WorkHistory.json');
+const contractArtifactPath = path.resolve(__dirname, './WorkHistory.json');
 let contractABI;
 let contractAddress;
 
@@ -461,6 +461,116 @@ export async function getUsersData(userAddress) {
 
     } catch (error) {
         console.error('Error getting user data:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Add a document to the blockchain for an employee using fluence backend
+ * @param {string} employeeAddress - The employee address to add document for
+ * @param {string} documentHash - The hash of the document content
+ * @param {string} orgAddress - The organization address that is adding the document
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function addDocumentToBlockchain(employeeAddress, documentHash, orgAddress) {
+    try {
+        console.log(`Adding document for employee: ${employeeAddress}`);
+        console.log(`Document hash: ${documentHash}`);
+        console.log(`Organization: ${orgAddress}`);
+        console.log(`Using contract at: ${contractAddress}`);
+        
+        // First check if the employee is registered
+        const employeeExists = await rpcClient.callContract(
+            contractAddress,
+            contractABI,
+            'checkIfEmployeeExists',
+            [employeeAddress]
+        );
+
+        if (!employeeExists.success || !employeeExists.data) {
+            return {
+                success: false,
+                error: "Employee is not registered"
+            };
+        }
+
+        // Check if the organization exists and is trusted
+        const orgExists = await rpcClient.callContract(
+            contractAddress,
+            contractABI,
+            'checkIfOrgExists',
+            [orgAddress]
+        );
+
+        if (!orgExists.success || !orgExists.data) {
+            return {
+                success: false,
+                error: "Organization does not exist"
+            };
+        }
+
+        // Get organization details to check if it's trusted
+        const orgDetails = await rpcClient.callContract(
+            contractAddress,
+            contractABI,
+            'organizations',
+            [orgAddress]
+        );
+
+        if (!orgDetails.success || !orgDetails.data[4]) { // index 4 is isTrusted
+            return {
+                success: false,
+                error: "Organization is not trusted"
+            };
+        }
+
+        // Execute the addDocument function using the fluence backend's private key
+        // Note: The fluence backend needs to be set as a trusted organization for this to work
+        const result = await fluenceBackendClient.executeContract(
+            contractAddress,
+            contractABI,
+            'addDocument',
+            [employeeAddress, documentHash]
+        );
+
+        if (result.success) {
+            console.log(`Document added successfully for employee ${employeeAddress}`);
+            console.log(`Transaction hash: ${result.data.hash}`);
+            
+            // Wait for transaction confirmation
+            const receipt = await fluenceBackendClient.waitForTransaction(result.data.hash, 1);
+            if (receipt.success) {
+                console.log(`Transaction confirmed: ${result.data.hash}`);
+                return {
+                    success: true,
+                    data: {
+                        transactionHash: result.data.hash,
+                        documentHash: documentHash,
+                        employeeAddress: employeeAddress,
+                        addedBy: process.env.FLUENCE_BACKEND_ADDRESS,
+                        receipt: receipt.data
+                    }
+                };
+            } else {
+                console.error('Transaction failed to confirm:', receipt.error);
+                return {
+                    success: false,
+                    error: `Transaction failed to confirm: ${receipt.error}`
+                };
+            }
+        } else {
+            console.error('Failed to add document:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error adding document to blockchain:', error);
         return {
             success: false,
             error: error.message
