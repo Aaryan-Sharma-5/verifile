@@ -43,8 +43,8 @@ export default function Verify({ account, authData, userType }: VerifyProps) {
         nationality: true,
         gender: true,
       },
-      userDefinedData: "test",
-      //...(userDefinedData && { userDefinedData })
+      //userDefinedData: "test",
+      userDefinedData: String(userDefinedData.address + ":" + userDefinedData.signature + ":" + userDefinedData.message)
     }).build()
 
     setSelfApp(app)

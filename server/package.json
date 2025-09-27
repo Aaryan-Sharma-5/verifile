@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@selfxyz/core": "^1.1.0-beta.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ethers": "^6.15.0",

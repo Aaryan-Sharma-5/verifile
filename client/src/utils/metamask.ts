@@ -69,18 +69,7 @@ export const generateAuthMessage = (address: string, userType: 'organization' | 
   const timestamp = new Date().toISOString()
   const nonce = Math.random().toString(36).substring(2, 15)
   
-  return `Welcome to VeriFile!
-
-To link your wallet, please sign this message with MetaMask to securely authenticate your account. This action verifies you as the owner and registers your wallet's public address as your User ID with our service.
-
-Address: ${address}
-User Type: ${userType}
-Timestamp: ${timestamp}
-Nonce: ${nonce}
-
-For verification, your address, the unique signature, and the original message will be included as user-defined data. This one-time signature is for login purposes only and does not authorize any transactions.
-
-Click "Sign" in the MetaMask pop-up to complete the connection securely.`
+  return `Welcome to VeriFile`
 }
 
 // Sign message with MetaMask
