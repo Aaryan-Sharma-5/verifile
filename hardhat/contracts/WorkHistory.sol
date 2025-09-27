@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 contract WorkHistory {
     address public owner;
     address public fluenceBackendAddress = 0xDCeFdee35A355715924C100870a5689b06c2dd95;
-    uint256 public VERIFICATION_THRESHOLD = 3; // Need 3 verifications to trust
+    uint256 public VERIFICATION_THRESHOLD = 1; // Need 1 verifications to trust
     
     modifier onlyFluenceBackend() {
         require(msg.sender == fluenceBackendAddress, "Only Fluence Backend");
