@@ -173,3 +173,290 @@ export async function registerEmployee(employeeAddress) {
         };
     }
 }
+
+/**
+ * Add an organization to the waiting list using fluence backend
+ * @param {Object} orgData - Organization data
+ * @param {string} orgData.orgName - Organization name
+ * @param {string} orgData.orgWebsite - Organization website
+ * @param {string} orgData.physicalAddress - Organization physical address
+ * @param {string} orgData.orgWalletAddress - Organization wallet address
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function addOrganizationToWaitingList(orgData) {
+    try {
+        console.log('Adding organization to waiting list:', orgData);
+        console.log(`Using contract at: ${contractAddress}`);
+        
+        // Create the organization object that matches the contract structure
+        const orgStruct = {
+            orgName: orgData.orgName,
+            orgWebsite: orgData.orgWebsite,
+            physicalAddress: orgData.physicalAddress,
+            orgWalletAddress: orgData.orgWalletAddress
+        };
+
+        // Execute the addOrganization function using the fluence backend's private key
+        const result = await rpcClient.executeContract(
+            contractAddress,
+            contractABI,
+            'addOrganization',
+            [orgStruct]
+        );
+
+        if (result.success) {
+            console.log(`Organization ${orgData.orgName} added to waiting list successfully`);
+            console.log(`Transaction hash: ${result.data.hash}`);
+            
+            // Wait for transaction confirmation
+            const receipt = await rpcClient.waitForTransaction(result.data.hash, 1);
+            if (receipt.success) {
+                console.log(`Transaction confirmed: ${result.data.hash}`);
+                return {
+                    success: true,
+                    data: {
+                        transactionHash: result.data.hash,
+                        receipt: receipt.data
+                    }
+                };
+            } else {
+                console.error('Transaction failed to confirm:', receipt.error);
+                return {
+                    success: false,
+                    error: `Transaction failed to confirm: ${receipt.error}`
+                };
+            }
+        } else {
+            console.error('Failed to add organization:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error adding organization to waiting list:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get all initial organizations (created with constructor)
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function getAllInitialOrganizations() {
+    try {
+        console.log('Getting all initial organizations');
+        
+        const result = await rpcClient.callContract(
+            contractAddress,
+            contractABI,
+            'getAllInitialOrganizationIds',
+            []
+        );
+
+        if (result.success) {
+            console.log('Initial organizations retrieved successfully');
+            return {
+                success: true,
+                data: result.data
+            };
+        } else {
+            console.error('Failed to get initial organizations:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error getting initial organizations:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Check if an organization is one of the powerful/initial organizations
+ * @param {string} orgAddress - The organization address to check
+ * @returns {Promise<{success: boolean, isPowerful?: boolean, error?: string}>}
+ */
+export async function checkOrgsPowerfulOrNot(orgAddress) {
+    try {
+        console.log(`Checking if organization ${orgAddress} is powerful/initial`);
+        
+        // Get all initial organizations
+        const initialOrgsResult = await getAllInitialOrganizations();
+        
+        if (!initialOrgsResult.success) {
+            return {
+                success: false,
+                error: initialOrgsResult.error
+            };
+        }
+
+        // Check if the provided address is in the initial organizations
+        const initialOrgs = initialOrgsResult.data;
+        const isPowerful = initialOrgs.some(org => 
+            org.orgWalletAddress.toLowerCase() === orgAddress.toLowerCase()
+        );
+
+        console.log(`Organization ${orgAddress} is ${isPowerful ? 'powerful' : 'not powerful'}`);
+        
+        return {
+            success: true,
+            isPowerful: isPowerful
+        };
+
+    } catch (error) {
+        console.error('Error checking if organization is powerful:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Verify an organization (vote for it) using fluence backend on behalf of a trusted organization
+ * @param {string} voterAddress - Address of the organization that is voting
+ * @param {string} orgToVerifyAddress - Address of the organization being verified
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function verifyOrganization(voterAddress, orgToVerifyAddress) {
+    try {
+        console.log(`Organization ${voterAddress} is verifying ${orgToVerifyAddress}`);
+        console.log(`Using contract at: ${contractAddress}`);
+        
+        // Use the new verifyOrganizationOnBehalf function that allows fluence backend 
+        // to verify on behalf of a trusted organization
+        const result = await rpcClient.executeContract(
+            contractAddress,
+            contractABI,
+            'verifyOrganizationOnBehalf',
+            [voterAddress, orgToVerifyAddress]
+        );
+
+        if (result.success) {
+            console.log(`Organization ${orgToVerifyAddress} verified successfully by ${voterAddress}`);
+            console.log(`Transaction hash: ${result.data.hash}`);
+            
+            // Wait for transaction confirmation
+            const receipt = await rpcClient.waitForTransaction(result.data.hash, 1);
+            if (receipt.success) {
+                console.log(`Transaction confirmed: ${result.data.hash}`);
+                return {
+                    success: true,
+                    data: {
+                        transactionHash: result.data.hash,
+                        receipt: receipt.data
+                    }
+                };
+            } else {
+                console.error('Transaction failed to confirm:', receipt.error);
+                return {
+                    success: false,
+                    error: `Transaction failed to confirm: ${receipt.error}`
+                };
+            }
+        } else {
+            console.error('Failed to verify organization:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error verifying organization:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get user documents data for employee dashboard
+ * @param {string} userAddress - The employee address to get documents for
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function getUserDocuments(userAddress) {
+    try {
+        console.log(`Getting documents for user: ${userAddress}`);
+        
+        const result = await rpcClient.callContract(
+            contractAddress,
+            contractABI,
+            'getUserDocuments',
+            [userAddress]
+        );
+
+        if (result.success) {
+            console.log('User documents retrieved successfully');
+            return {
+                success: true,
+                data: result.data
+            };
+        } else {
+            console.error('Failed to get user documents:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error getting user documents:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Get comprehensive user data including documents and organizations
+ * @param {string} userAddress - The employee address to get data for
+ * @returns {Promise<{success: boolean, data?: any, isRegistered?: boolean, error?: string}>}
+ */
+export async function getUsersData(userAddress) {
+    try {
+        console.log(`Getting comprehensive data for user: ${userAddress}`);
+        
+        const result = await rpcClient.callContract(
+            contractAddress,
+            contractABI,
+            'getUsersData',
+            [userAddress]
+        );
+
+        if (result.success) {
+            console.log('User data retrieved successfully');
+            const [userData, isRegistered] = result.data;
+            return {
+                success: true,
+                data: userData,
+                isRegistered: isRegistered
+            };
+        } else {
+            console.error('Failed to get user data:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('Error getting user data:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
