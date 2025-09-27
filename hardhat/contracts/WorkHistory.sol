@@ -6,6 +6,11 @@ contract WorkHistory {
     address public fluenceBackendAddress;
     uint256 public constant VERIFICATION_THRESHOLD = 3; // Need 3 verifications to trust
     
+    modifier onlyFluenceBackend() {
+        require(msg.sender == fluenceBackendAddress, "Only Fluence Backend");
+        _;
+    }
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner");
         _;
@@ -116,8 +121,7 @@ contract WorkHistory {
         }
     }
 
-    function registerEmployee(address _employee) public {
-        require(organizations[msg.sender].isTrusted, "Only trusted organizations can register employees");
+    function registerEmployee(address _employee) public onlyFluenceBackend{
         registeredEmployees[_employee] = true;
         emit EmployeeRegistered(_employee);
     }
@@ -172,4 +176,6 @@ contract WorkHistory {
         // Note: This would require updating the constant to a state variable
         // VERIFICATION_THRESHOLD = _newThreshold;
     }
+
+    function addEmpl
 }
