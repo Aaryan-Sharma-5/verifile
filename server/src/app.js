@@ -232,4 +232,65 @@ app.post("/api/vote", validateMetaMaskCredentials, async (req, res) => {
   }
 })
 
+app.post("/api/register-employee", validateMetaMaskCredentials, async (req, res) => {
+  console.log("Received employee registration request");
+  console.log("Verified MetaMask data:", req.metamask);
+
+  try {
+    // Get the employee address from the validated MetaMask request
+    const employeeAddress = req.metamask.address;
+
+    // First check if the address already exists as an employee or organization
+    const addressType = await checkAddressTypeAsFluenceBackend(employeeAddress);
+    
+    if (addressType.whatExists === 'employee') {
+      return res.status(400).json({
+        success: false,
+        error: "Already registered",
+        message: "Address is already registered as an employee"
+      });
+    }
+
+    if (addressType.whatExists === 'org') {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid address",
+        message: "Address is already registered as an organization"
+      });
+    }
+
+    console.log(`📝 Registering new employee: ${employeeAddress}`);
+
+    // Register the employee using the fluence backend private key
+    const registerResult = await registerEmployee(employeeAddress);
+
+    if (registerResult.success) {
+      console.log(`✅ Employee ${employeeAddress} registered successfully`);
+      res.json({
+        success: true,
+        message: "Employee registered successfully",
+        data: {
+          employeeAddress: employeeAddress,
+          transactionHash: registerResult.data.transactionHash
+        }
+      });
+    } else {
+      console.log(`⚠️ Failed to register employee: ${registerResult.error}`);
+      res.status(500).json({
+        success: false,
+        error: "Failed to register employee",
+        message: registerResult.error
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Error during employee registration:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      message: error.message
+    });
+  }
+});
+
 export default app;

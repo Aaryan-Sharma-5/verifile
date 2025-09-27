@@ -1,4 +1,4 @@
-import { rpcClient } from './rpc.js';
+import { rpcClient, createRPCClient } from './rpc.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,6 +21,13 @@ try {
     console.error('Error loading contract artifact:', error);
     contractABI = [];
 }
+
+// Create a dedicated RPC client for fluence backend operations
+// The PRIVATE_KEY in .env should correspond to the FLUENCE_BACKEND_ADDRESS
+const fluenceBackendClient = createRPCClient(
+    process.env.RPC_URL || 'http://localhost:8545',
+    process.env.PRIVATE_KEY // This should be the private key for FLUENCE_BACKEND_ADDRESS
+);
 
 /**
  * Check if an address exists as an organization or employee on the blockchain
@@ -128,7 +135,7 @@ export async function registerEmployee(employeeAddress) {
         console.log(`Fluence backend address: ${process.env.FLUENCE_BACKEND_ADDRESS || 'using default from contract'}`);
         
         // Execute the registerEmployee function using the fluence backend's private key
-        const result = await rpcClient.executeContract(
+        const result = await fluenceBackendClient.executeContract(
             contractAddress,
             contractABI,
             'registerEmployee',
@@ -140,7 +147,7 @@ export async function registerEmployee(employeeAddress) {
             console.log(`Transaction hash: ${result.data.hash}`);
             
             // Wait for transaction confirmation
-            const receipt = await rpcClient.waitForTransaction(result.data.hash, 1);
+            const receipt = await fluenceBackendClient.waitForTransaction(result.data.hash, 1);
             if (receipt.success) {
                 console.log(`Transaction confirmed: ${result.data.hash}`);
                 return {
@@ -197,7 +204,7 @@ export async function addOrganizationToWaitingList(orgData) {
         };
 
         // Execute the addOrganization function using the fluence backend's private key
-        const result = await rpcClient.executeContract(
+        const result = await fluenceBackendClient.executeContract(
             contractAddress,
             contractABI,
             'addOrganization',
@@ -209,7 +216,7 @@ export async function addOrganizationToWaitingList(orgData) {
             console.log(`Transaction hash: ${result.data.hash}`);
             
             // Wait for transaction confirmation
-            const receipt = await rpcClient.waitForTransaction(result.data.hash, 1);
+            const receipt = await fluenceBackendClient.waitForTransaction(result.data.hash, 1);
             if (receipt.success) {
                 console.log(`Transaction confirmed: ${result.data.hash}`);
                 return {
@@ -335,7 +342,7 @@ export async function verifyOrganization(voterAddress, orgToVerifyAddress) {
         
         // Use the new verifyOrganizationOnBehalf function that allows fluence backend 
         // to verify on behalf of a trusted organization
-        const result = await rpcClient.executeContract(
+        const result = await fluenceBackendClient.executeContract(
             contractAddress,
             contractABI,
             'verifyOrganizationOnBehalf',
@@ -347,7 +354,7 @@ export async function verifyOrganization(voterAddress, orgToVerifyAddress) {
             console.log(`Transaction hash: ${result.data.hash}`);
             
             // Wait for transaction confirmation
-            const receipt = await rpcClient.waitForTransaction(result.data.hash, 1);
+            const receipt = await fluenceBackendClient.waitForTransaction(result.data.hash, 1);
             if (receipt.success) {
                 console.log(`Transaction confirmed: ${result.data.hash}`);
                 return {
