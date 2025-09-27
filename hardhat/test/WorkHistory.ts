@@ -21,24 +21,29 @@ describe("WorkHistory Contract", async function () {
   let workHistory: any;
   
   // Sample organizations for constructor
-  const constructorOrgs = [
+  const constructorOrgs: Array<{
+    orgName: string;
+    orgWebsite: string;
+    physicalAddress: string;
+    orgWalletAddress: `0x${string}`;
+  }> = [
     {
       orgName: "TechCorp Inc",
       orgWebsite: "https://techcorp.com",
       physicalAddress: "123 Tech Street, Silicon Valley, CA",
-      orgWalletAddress: "0x0000000000000000000000000000000000000000" // Will be replaced with actual address
+      orgWalletAddress: "0x0000000000000000000000000000000000000000" as `0x${string}` // Will be replaced with actual address
     },
     {
       orgName: "InnovateLabs",
       orgWebsite: "https://innovatelabs.io", 
       physicalAddress: "456 Innovation Blvd, Austin, TX",
-      orgWalletAddress: "0x0000000000000000000000000000000000000000" // Will be replaced with actual address
+      orgWalletAddress: "0x0000000000000000000000000000000000000000" as `0x${string}` // Will be replaced with actual address
     },
     {
       orgName: "VerifiedCorp",
       orgWebsite: "https://verifiedcorp.com", 
       physicalAddress: "789 Verified Way, Seattle, WA",
-      orgWalletAddress: "0x0000000000000000000000000000000000000000" // Will be replaced with actual address
+      orgWalletAddress: "0x0000000000000000000000000000000000000000" as `0x${string}` // Will be replaced with actual address
     }
   ];
 
