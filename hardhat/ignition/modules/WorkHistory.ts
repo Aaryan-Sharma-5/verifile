@@ -18,7 +18,7 @@ const WorkHistoryModule = buildModule("WorkHistoryModule", (m) => {
   ];
   
   // Define the Fluence backend address (replace with actual address when available)
-  const fluenceBackendAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Placeholder address
+  const fluenceBackendAddress = "0xDCeFdee35A355715924C100870a5689b06c2dd95"; // Placeholder address
   
   const workHistory = m.contract("WorkHistory", [constructorOrgs, fluenceBackendAddress]);
 

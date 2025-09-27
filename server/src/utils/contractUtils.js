@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load the contract ABI
-const contractArtifactPath = path.join(__dirname, '../../../hardhat/artifacts/contracts/WorkHistory.sol/WorkHistory.json');
+const contractArtifactPath = path.resolve(__dirname, '../../../hardhat/artifacts/contracts/WorkHistory.sol/WorkHistory.json');
 let contractABI;
 let contractAddress;
 
