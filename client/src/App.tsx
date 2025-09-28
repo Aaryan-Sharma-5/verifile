@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import WorkHistoryWelcome from "./page/Home";
+import Home from "./page/Home";
 import Auth from "./page/RegisterChoice";
 import Organization from "./page/Organization";
 import Employee from "./page/Employee";
@@ -12,7 +12,7 @@ const App = () => {
   const router = createBrowserRouter([
     {
       path: "/",
-      element: <WorkHistoryWelcome />,
+      element: <Home />,
     },
     {
       path: "/register-choice",

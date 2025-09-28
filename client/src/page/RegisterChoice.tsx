@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, Building, User, AlertCircle, CheckCircle, Download, Sparkles, ArrowRight, Users, FileText } from 'lucide-react'
+import { Shield, Building, User, AlertCircle, CheckCircle, Download, ArrowRight } from 'lucide-react'
 import { isMetaMaskInstalled, connectWallet, getCurrentAccount, authenticateWithMetaMask } from '../utils/metamask'
 import type { AuthData } from '../utils/metamask'
 import SelfComponent from '../components/auth/SelfComponent'

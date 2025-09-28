@@ -1,4 +1,9 @@
 import React, { useState, useRef } from 'react';
+import { 
+  Shield, 
+  ArrowLeft
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
 
 interface FileData {
@@ -8,7 +13,8 @@ interface FileData {
   status: 'pending' | 'uploading' | 'success' | 'error';
 }
 
-const VerifyDocuments = () => {
+const UploadDocuments = () => {
+  const navigate = useNavigate();
   const [files, setFiles] = useState<FileData[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
@@ -100,15 +106,54 @@ const VerifyDocuments = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4">
-            Document Verification
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-pulse delay-1000"></div>
+        <div className="absolute -bottom-32 left-20 w-72 h-72 bg-gray-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse delay-2000"></div>
+      </div>
+
+      {/* Header */}
+      <header className="relative px-6 py-6 backdrop-blur-sm bg-white/80 border-b border-gray-200/50 shadow-sm">
+        <nav className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-medium">Back to Home</span>
+            </button>
+          </div>
+          
+          <div className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                VeriFile
+              </span>
+              <span className="text-xs text-orange-600 font-medium -mt-1">
+                Upload Documents
+              </span>
+            </div>
+          </div>
+
+          <div className="w-24"></div>
+        </nav>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative max-w-5xl mx-auto px-6 py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Upload Your <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">Documents</span>
           </h1>
-          <p className="text-gray-600 text-lg">
-            Upload your documents securely for blockchain verification
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Securely upload and verify your documents on the blockchain. Fast, reliable, and permanently accessible.
           </p>
         </div>
 
@@ -300,10 +345,11 @@ const VerifyDocuments = () => {
             </button>
           </div>
         )}
-      </div>
+      </main>
+      
       <Footer />
     </div>
   );
 };
 
-export default VerifyDocuments;
+export default UploadDocuments;

@@ -5,14 +5,12 @@ import {
   ArrowRight,
   Zap,
   Sparkles,
-  CheckCircle,
-  Star,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Footer from "../components/Footer";
 
-export default function WorkHistoryWelcome() {
+export default function Home() {
   const navigate = useNavigate();
   const [isUserVerified, setIsUserVerified] = useState(false);
 
