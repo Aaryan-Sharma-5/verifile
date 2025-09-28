@@ -1,6 +1,11 @@
+import Footer from '../components/Footer';
+
 const Organization = () => {
   return (
-    <div>Organization</div>
+    <div>
+      <div>Organization</div>
+      <Footer />
+    </div>
   )
 }
 

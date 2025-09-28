@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Footer from '../components/Footer';
 
 interface FileData {
   id: string;
@@ -300,6 +301,7 @@ const VerifyDocuments = () => {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 };

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Shield, Building, User, AlertCircle, CheckCircle, Download } from 'lucide-react'
+import { Shield, Building, User, AlertCircle, CheckCircle, Download, Sparkles, ArrowRight, Users, FileText } from 'lucide-react'
 import { isMetaMaskInstalled, connectWallet, getCurrentAccount, authenticateWithMetaMask } from '../utils/metamask'
 import type { AuthData } from '../utils/metamask'
 import SelfComponent from '../components/auth/SelfComponent'
+import Footer from '../components/Footer'
 
 type UserType = 'organization' | 'employee'
 
@@ -169,30 +170,40 @@ function RegisterChoice() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse float-animation"></div>
+        <div className="absolute top-40 right-10 w-64 h-64 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+        <div className="absolute -bottom-32 left-20 w-64 h-64 bg-gray-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse delay-2000"></div>
+      </div>
+
       {/* Header */}
-      <header className="px-6 py-6">
+      <header className="relative px-6 py-6 backdrop-blur-sm bg-white/80 border-b border-gray-200/50 shadow-sm">
         <nav className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
+          <div className="flex items-center space-x-3 group">
+            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <Shield className="w-7 h-7 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-              VeriFile
-            </span>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                VeriFile
+              </span>
+              <span className="text-xs text-orange-600 font-medium -mt-1">Registration Portal</span>
+            </div>
           </div>
         </nav>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 pt-8 pb-20">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+      <main className="relative max-w-5xl mx-auto px-6 pt-12 pb-20">
+        <div className="text-center mb-16">          
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Choose Your
-            <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent"> Registration Type</span>
+            <span className="block bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 bg-clip-text text-transparent"> Registration Path</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Register as an employee to verify your work history or as an organization to issue verified credentials.
+          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Join the blockchain revolution. Register as an <span className="font-semibold text-gray-800">employee</span> to verify your documents or as an <span className="font-semibold text-gray-800">organization</span> to issue verified credentials.
           </p>
         </div>
 
@@ -263,51 +274,149 @@ function RegisterChoice() {
           </div>
         )}
 
-        {/* Registration Box */}
+        {/* Registration Cards */}
         {isConnected && (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            {/* Type Selection Tabs */}
-            <div className="flex bg-gray-50 border-b border-gray-200">
-              <button
-                onClick={() => {
-                  setSelectedType('employee')
-                  setOrgWantsToJoin(null)
-                  setAuthData(null)
-                }}
-                className={`flex-1 py-4 px-6 text-center font-semibold transition-colors ${
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {/* Employee Card */}
+            <div 
+              onClick={() => {
+                setSelectedType('employee')
+                setOrgWantsToJoin(null)
+                setAuthData(null)
+              }}
+              className={`group cursor-pointer transform transition-all duration-300 hover:-translate-y-2 ${
+                selectedType === 'employee' ? 'scale-105' : ''
+              }`}
+            >
+              <div className={`relative bg-white rounded-3xl p-8 shadow-xl border-2 transition-all duration-300 ${
+                selectedType === 'employee' 
+                  ? 'border-orange-500 shadow-2xl' 
+                  : 'border-gray-200 hover:border-orange-300 hover:shadow-2xl'
+              }`}>
+                {selectedType === 'employee' && (
+                  <div className="absolute -top-3 -right-3 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                
+                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-all duration-300 ${
                   selectedType === 'employee'
-                    ? 'bg-white text-orange-600 border-b-2 border-orange-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <User className="w-5 h-5 inline-block mr-2" />
-                Employee
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedType('organization')
-                  setOrgWantsToJoin(null)
-                  setAuthData(null)
-                }}
-                className={`flex-1 py-4 px-6 text-center font-semibold transition-colors ${
-                  selectedType === 'organization'
-                    ? 'bg-white text-orange-600 border-b-2 border-orange-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <Building className="w-5 h-5 inline-block mr-2" />
-                Organization
-              </button>
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 scale-110'
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600 group-hover:scale-110'
+                }`}>
+                  <User className="w-10 h-10 text-white" />
+                </div>
+                
+                <h3 className={`text-2xl font-bold mb-4 transition-colors ${
+                  selectedType === 'employee' ? 'text-orange-600' : 'text-gray-900 group-hover:text-orange-600'
+                }`}>
+                  I'm an Employee
+                </h3>
+                
+                <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                  Verify your professional documents and work history on the blockchain. Create tamper-proof credentials that employers can trust.
+                </p>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-700">Secure document verification</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-700">Blockchain-backed credentials</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-700">Privacy-first verification</span>
+                  </div>
+                </div>
+
+                <div className={`mt-6 flex items-center font-medium transition-all duration-300 ${
+                  selectedType === 'employee' ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-600 group-hover:translate-x-2'
+                }`}>
+                  <span>Get Started</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </div>
             </div>
 
-            {/* Registration Content */}
-            <div className="p-8">
-              {renderRegistrationContent()}
+            {/* Organization Card */}
+            <div 
+              onClick={() => {
+                setSelectedType('organization')
+                setOrgWantsToJoin(null)
+                setAuthData(null)
+              }}
+              className={`group cursor-pointer transform transition-all duration-300 hover:-translate-y-2 ${
+                selectedType === 'organization' ? 'scale-105' : ''
+              }`}
+            >
+              <div className={`relative bg-white rounded-3xl p-8 shadow-xl border-2 transition-all duration-300 ${
+                selectedType === 'organization' 
+                  ? 'border-orange-500 shadow-2xl' 
+                  : 'border-gray-200 hover:border-orange-300 hover:shadow-2xl'
+              }`}>
+                {selectedType === 'organization' && (
+                  <div className="absolute -top-3 -right-3 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                
+                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-all duration-300 ${
+                  selectedType === 'organization'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 scale-110'
+                    : 'bg-gradient-to-r from-green-500 to-emerald-600 group-hover:scale-110'
+                }`}>
+                  <Building className="w-10 h-10 text-white" />
+                </div>
+                
+                <h3 className={`text-2xl font-bold mb-4 transition-colors ${
+                  selectedType === 'organization' ? 'text-orange-600' : 'text-gray-900 group-hover:text-orange-600'
+                }`}>
+                  I'm an Organization
+                </h3>
+                
+                <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                  Issue verified credentials to your employees and partners. Join the trusted network of organizations using blockchain verification.
+                </p>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-700">Issue verified credentials</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-700">Manage employee records</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-700">Trusted network access</span>
+                  </div>
+                </div>
+
+                <div className={`mt-6 flex items-center font-medium transition-all duration-300 ${
+                  selectedType === 'organization' ? 'text-orange-600' : 'text-gray-400 group-hover:text-orange-600 group-hover:translate-x-2'
+                }`}>
+                  <span>Get Started</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Registration Content */}
+        {isConnected && (
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8">
+            {renderRegistrationContent()}
+          </div>
+        )}
       </main>
+      <Footer />
     </div>
+    
   )
 }
 

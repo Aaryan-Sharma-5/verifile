@@ -1,5 +1,12 @@
+import Footer from '../components/Footer';
+
 function VerifyDocuments() {
-  return <div>VerifyDocuments</div>;
+  return (
+    <div>
+      <div>VerifyDocuments</div>
+      <Footer />
+    </div>
+  );
 }
 
 export default VerifyDocuments;

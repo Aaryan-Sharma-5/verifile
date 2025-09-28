@@ -1,6 +1,11 @@
+import Footer from '../components/Footer';
+
 const Employee = () => {
   return (
-    <div>Employee</div>
+    <div>
+      <div>Employee</div>
+      <Footer />
+    </div>
   )
 }
 
